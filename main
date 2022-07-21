@@ -1,0 +1,76 @@
+# Импортирум библиотеку работы с сайтами
+import requests
+
+word = input('Введите аббревиатуру>>')
+
+
+def tech(user_input):
+    global text
+
+    # Импортируем HTML код со страницы вывода информации об аббривиатуре
+    url = f"https://www.sokr.ru/search/?abbr={user_input}&abbr_exact=1&value=&tag="
+    r = requests.post(url)
+    output = str(r.content)
+
+    # ВЕСЬ код импортируется в 1 строчку
+    # и русские буквы в нем в том виде, в котором они хранятся в памяти в кодировке UTF-8(наверно)
+    # Создаём массив, разделяющий строку на удобные для фильтрования части
+    all = []
+    agp = 'r'
+    d = ''
+    for f in output:
+        i = str(f)
+
+        # Нужный нам текст содержится в абзацах типа <p>
+        if agp + i == '<p':
+            all.append(d)
+            d = ''
+        d += i
+        agp = i
+
+    # Удялем первые 2 строчки с большой лишней информацией
+    all.remove(all[0])
+    all.remove(all[1])
+
+    # Далее происходит фильтрация нужных частей кода со словами от синтаксиса HTML
+
+    # Фильтрация 1: очистка правой части строки
+    all_text = []
+    for line in all:
+        d = ''
+        for letter in line:
+            if letter == '<':
+                break
+            d += letter
+        all_text.append(d)
+
+    # Фильтрация 2: рассшифровка аббревиатур содержится в абзацах класса value
+    need_text = []
+    for line in all_text:
+        if line[9] == 'v':
+            need_text.append(line)
+
+    # Фильтрация 3: очистка левой части строки
+    text = []
+    for line in need_text:
+        d = ''
+        for i in range(16, len(line)):
+            d += line[i]
+        text.append(d)
+
+    # По итогу получаем сухую кодировку и ни капли синтаксиса
+    # Аля \\xd0\\xbe\\xd1\\x81\\xd0\\xbd\\xd0\\xbe\\xd0\\xb2\\xd0\\xbd\\xd0\\xbe\\xd0\\xb5
+    # Но с 2-мя "\" ничего не работает
+
+
+tech(word)
+
+# Декодируем в читабильный текст (я хз как, но оно делает так, что оно работает)
+outputs = []
+for i in range(len(text)):
+    b = text[i].encode('latin1').decode('unicode_escape').encode('latin1').decode('utf8')
+    outputs.append(b)
+
+# Красивый вывод
+for i in range(len(outputs)):
+    print(f'{word} - {outputs[i]}')
